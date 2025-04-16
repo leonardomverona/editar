@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Editor HTML Profissional</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.7.2/font/bootstrap-icons.css">
+  <style>
+    .editor-container {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 20px;
+      padding: 20px;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+    #previewWrapper {
+      border: 1px solid #ddd;
+      padding: 20px;
+      min-height: 80vh;
+      background: white;
+      position: relative;
+    }
+    #previewFrame {
+      width: 100%;
+      height: 80vh;
+      border: none;
+    }
+    .toolbar {
+      position: sticky;
+      top: 0;
+      background: white;
+      padding: 10px;
+      border-bottom: 1px solid #ddd;
+      z-index: 1000;
+      display: flex;
+      gap: 5px;
+      flex-wrap: wrap;
+    }
+    .toolbar-group {
+      display: flex;
+      align-items: center;
+      border-right: 1px solid #ddd;
+      padding-right: 10px;
+      margin-right: 10px;
+    }
+    .editable {
+      cursor: text !important;
+      outline: 2px dashed transparent !important;
+      transition: all 0.2s !important;
+      min-height: 1em;
+    }
+    .editable:hover {
+      outline-color: rgba(13, 110, 253, 0.3) !important;
+    }
+    .editable:focus {
+      outline: 2px solid #0d6efd !important;
+    }
+    /* Estilo para indicar área de drop */
+    .over {
+      outline: 2px dashed #0d6efd;
+    }
+  </style>
+</head>
+<body>
+  <div class="editor-container">
+    <!-- Barra de Ferramentas -->
+    <div class="toolbar">
+      <div class="toolbar-group">
+        <input type="file" id="htmlInput" accept=".html" class="form-control form-control-sm">
+      </div>
+      <div class="toolbar-group">
+        <select class="form-select form-select-sm" onchange="formatText('fontName', this.value)">
+          <option value="">Fonte</option>
+          <option value="Arial">Arial</option>
+          <option value="Times New Roman">Times New Roman</option>
+          <option value="Courier New">Courier New</option>
+          <option value="Georgia">Georgia</option>
+          <option value="Verdana">Verdana</option>
+        </select>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('bold')" title="Negrito"><i class="bi bi-type-bold"></i></button>
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('italic')" title="Itálico"><i class="bi bi-type-italic"></i></button>
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('underline')" title="Sublinhado"><i class="bi bi-type-underline"></i></button>
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('strikeThrough')" title="Tachado"><i class="bi bi-type-strikethrough"></i></button>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('justifyLeft')" title="Alinhar à esquerda"><i class="bi bi-text-left"></i></button>
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('justifyCenter')" title="Centralizar"><i class="bi bi-text-center"></i></button>
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('justifyRight')" title="Alinhar à direita"><i class="bi bi-text-right"></i></button>
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('justifyFull')" title="Justificar"><i class="bi bi-justify"></i></button>
+      </div>
+      <div class="toolbar-group">
+        <input type="color" onchange="formatText('foreColor', this.value)" class="form-control-color" title="Cor do texto">
+        <input type="color" onchange="formatText('hiliteColor', this.value)" class="form-control-color" title="Cor de fundo">
+      </div>
+      <div class="toolbar-group">
+        <select class="form-select form-select-sm" onchange="formatText('fontSize', this.value)" title="Tamanho da fonte">
+          <option value="">Tamanho</option>
+          <option value="1">Pequeno</option>
+          <option value="3">Normal</option>
+          <option value="5">Grande</option>
+          <option value="7">Enorme</option>
+        </select>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('insertUnorderedList')" title="Lista não ordenada"><i class="bi bi-list-ul"></i></button>
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('insertOrderedList')" title="Lista ordenada"><i class="bi bi-list-ol"></i></button>
+      </div>
+      <div class="toolbar-group">
+        <button class="btn btn-sm btn-outline-dark" onclick="formatText('removeFormat')" title="Remover formatação"><i class="bi bi-eraser"></i></button>
+      </div>
+      <!-- Toolbar para Inserção de Elementos -->
+      <div class="toolbar-group">
+        <select class="form-select form-select-sm" onchange="if (this.value) { insertElement(this.value); this.value=''; }" title="Inserir Elemento">
+          <option value="">Inserir Elemento</option>
+          <option value="h1">Cabeçalho 1</option>
+          <option value="h2">Cabeçalho 2</option>
+          <option value="p">Parágrafo</option>
+          <option value="img">Imagem</option>
+          <option value="ul">Lista Não Ordenada</option>
+          <option value="ol">Lista Ordenada</option>
+          <option value="div">Divisão</option>
+        </select>
+      </div>
+    </div>
+    
+    <!-- Área de Preview -->
+    <div id="previewWrapper">
+      <iframe id="previewFrame"></iframe>
+    </div>
+    
+    <div class="text-center mt-3">
+      <button class="btn btn-success" onclick="showFinalHTML()">Visualizar HTML Final</button>
+      <button class="btn btn-primary" onclick="exportHTML()">Exportar HTML</button>
+    </div>
+  </div>
+  
+  <!-- Modal para exibir o código final -->
+  <div class="modal fade" id="codeModal" tabindex="-1" aria-labelledby="codeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="codeModalLabel">HTML Gerado</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <pre id="finalCode" class="p-3 bg-light"></pre>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+  <script>
+    let draggedEl = null; // Variável para armazenar o elemento em drag
+
+    // Carrega o arquivo HTML importado e o exibe no iframe
+    document.getElementById('htmlInput').addEventListener('change', function(e) {
+      const file = e.target.files[0];
+      if (!file) {
+        alert('Por favor, selecione um arquivo HTML');
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(e) {
+        const htmlContent = e.target.result;
+        if (!htmlContent) {
+          alert('O arquivo está vazio ou não pôde ser lido');
+          return;
+        }
+        loadPreview(htmlContent);
+      };
+      reader.onerror = function(e) {
+        alert('Erro ao ler o arquivo');
+      };
+      reader.readAsText(file);
+    });
+
+    function loadPreview(html) {
+      const preview = document.getElementById('previewFrame');
+      if (!preview) {
+        console.error('Elemento previewFrame não encontrado');
+        return;
+      }
+      preview.srcdoc = html;
+      preview.onload = () => {
+        try {
+          const doc = preview.contentDocument || preview.contentWindow.document;
+          if (!doc) {
+            alert('Erro ao carregar o conteúdo no preview');
+            return;
+          }
+          setupEditableContent(doc);
+          injectEditorStyles(doc);
+          // Permite drop no body caso nenhum elemento esteja focado
+          doc.body.addEventListener('dragover', handleDragOver, false);
+          doc.body.addEventListener('drop', function(e) {
+            if (draggedEl) {
+              doc.body.appendChild(draggedEl);
+              e.preventDefault();
+            }
+          }, false);
+        } catch (error) {
+          alert('Erro ao carregar o conteúdo. Tente executar em um servidor web local.');
+        }
+      };
+      preview.onerror = function(e) {
+        alert('Erro ao carregar o preview');
+      };
+    }
+
+    function setupEditableContent(doc) {
+      const editableSelectors = [
+        'h1:not([contenteditable="false"])', 
+        'h2:not([contenteditable="false"])', 
+        'h3:not([contenteditable="false"])', 
+        'h4:not([contenteditable="false"])', 
+        'h5:not([contenteditable="false"])', 
+        'h6:not([contenteditable="false"])',
+        'p:not([contenteditable="false"])', 
+        'li:not([contenteditable="false"])', 
+        'td:not([contenteditable="false"])', 
+        'th:not([contenteditable="false"])', 
+        'span:not([contenteditable="false"])', 
+        'a:not([contenteditable="false"])', 
+        'blockquote:not([contenteditable="false"])',
+        'div:not([contenteditable="false"])',
+        'section:not([contenteditable="false"])',
+        'article:not([contenteditable="false"])',
+        '[contenteditable="true"]'
+      ].join(', ');
+      const elements = doc.querySelectorAll(editableSelectors);
+      elements.forEach(element => {
+        if (!element.hasAttribute('contenteditable') || element.getAttribute('contenteditable') !== 'false') {
+          element.contentEditable = true;
+          element.classList.add('editable');
+          element.setAttribute('tabindex', '0');
+          addDragAndDropHandlers(element);
+        }
+      });
+      // Garante que elementos com contenteditable="false" permaneçam inalterados
+      doc.querySelectorAll('[contenteditable="false"]').forEach(element => {
+        element.contentEditable = false;
+        element.classList.remove('editable');
+      });
+    }
+
+    function injectEditorStyles(doc) {
+      const style = doc.createElement('style');
+      style.innerHTML = `
+        .editable[contenteditable="true"]:empty::before {
+          content: attr(placeholder);
+          color: #6c757d;
+          opacity: 0.6;
+        }
+      `;
+      doc.head.appendChild(style);
+    }
+
+    // Handlers para Drag & Drop
+    function addDragAndDropHandlers(element) {
+      element.setAttribute('draggable', 'true');
+      element.addEventListener('dragstart', handleDragStart, false);
+      element.addEventListener('dragenter', handleDragEnter, false);
+      element.addEventListener('dragover', handleDragOver, false);
+      element.addEventListener('dragleave', handleDragLeave, false);
+      element.addEventListener('drop', handleDrop, false);
+      element.addEventListener('dragend', handleDragEnd, false);
+    }
+
+    function handleDragStart(e) {
+      draggedEl = this;
+      this.style.opacity = '0.4';
+      e.dataTransfer.effectAllowed = 'move';
+    }
+
+    function handleDragOver(e) {
+      if (e.preventDefault) { e.preventDefault(); }
+      e.dataTransfer.dropEffect = 'move';
+      return false;
+    }
+
+    function handleDragEnter(e) {
+      this.classList.add('over');
+    }
+
+    function handleDragLeave(e) {
+      this.classList.remove('over');
+    }
+
+    function handleDrop(e) {
+      if (e.stopPropagation) { e.stopPropagation(); }
+      if (draggedEl !== this) {
+        this.parentNode.insertBefore(draggedEl, this);
+      }
+      this.classList.remove('over');
+      return false;
+    }
+
+    function handleDragEnd(e) {
+      this.style.opacity = '1';
+      let items = this.parentNode.querySelectorAll('.editable');
+      items.forEach(function(item) {
+        item.classList.remove('over');
+      });
+    }
+
+    function formatText(command, value = null) {
+      const preview = document.getElementById('previewFrame');
+      const doc = preview.contentWindow.document;
+      const win = preview.contentWindow;
+      const selection = win.getSelection();
+      let canFormat = false;
+      if (doc.activeElement && doc.activeElement.classList.contains('editable')) {
+        canFormat = true;
+      } else if (selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0);
+        const container = range.commonAncestorContainer;
+        const editableElement = container.nodeType === 1 ? container.closest('.editable') : container.parentElement.closest('.editable');
+        if (editableElement) {
+          canFormat = true;
+          editableElement.focus();
+        }
+      }
+      if (canFormat) {
+        try {
+          doc.execCommand('styleWithCSS', false, true);
+          const success = doc.execCommand(command, false, value);
+          doc.execCommand('styleWithCSS', false, false);
+          if (!success) {
+            alert('Não foi possível aplicar a formatação. Tente selecionar o texto novamente.');
+          }
+        } catch (error) {
+          alert('Erro ao aplicar a formatação');
+        }
+      } else {
+        alert('Selecione um texto editável primeiro ou clique em um elemento editável');
+      }
+    }
+
+    // Função para inserir novos elementos na área de preview
+    function insertElement(elementType) {
+      const preview = document.getElementById('previewFrame');
+      const doc = preview.contentDocument;
+      let newElement;
+      switch(elementType) {
+        case 'h1':
+          newElement = doc.createElement('h1');
+          newElement.innerHTML = 'Novo Cabeçalho 1';
+          break;
+        case 'h2':
+          newElement = doc.createElement('h2');
+          newElement.innerHTML = 'Novo Cabeçalho 2';
+          break;
+        case 'p':
+          newElement = doc.createElement('p');
+          newElement.innerHTML = 'Novo Parágrafo';
+          break;
+        case 'img':
+          newElement = doc.createElement('img');
+          newElement.setAttribute('src', '');
+          newElement.setAttribute('alt', 'Nova Imagem');
+          break;
+        case 'ul':
+          newElement = doc.createElement('ul');
+          let li1 = doc.createElement('li');
+          li1.innerHTML = 'Item da lista';
+          newElement.appendChild(li1);
+          break;
+        case 'ol':
+          newElement = doc.createElement('ol');
+          let li2 = doc.createElement('li');
+          li2.innerHTML = 'Item da lista';
+          newElement.appendChild(li2);
+          break;
+        case 'div':
+          newElement = doc.createElement('div');
+          newElement.innerHTML = 'Nova Divisão';
+          break;
+        default:
+          alert('Elemento não suportado');
+          return;
+      }
+      newElement.contentEditable = true;
+      newElement.classList.add('editable');
+      addDragAndDropHandlers(newElement);
+      let focusedElement = doc.activeElement;
+      if (focusedElement && focusedElement !== doc.body && focusedElement.classList.contains('editable')) {
+        focusedElement.parentNode.insertBefore(newElement, focusedElement.nextSibling);
+      } else {
+        doc.body.appendChild(newElement);
+      }
+    }
+
+    // Geração do HTML final
+    // Essa função clona o DOM atual do iframe, remove os atributos do editor,
+    // elimina os containers gerados pelo select2 e remove duplicatas do campo 'município'
+    function generateFinalHTML() {
+      const preview = document.getElementById('previewFrame');
+      const doc = preview.contentDocument;
+      // Clone o documento atual
+      const finalDoc = doc.cloneNode(true);
+      
+      // Remove atributos e classes do modo de edição
+      finalDoc.querySelectorAll('.editable').forEach(el => {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('tabindex');
+        el.removeAttribute('draggable');
+        el.classList.remove('editable');
+      });
+      
+      // Remover os containers gerados pelo select2 (duplicados na renderização)
+      finalDoc.querySelectorAll('.select2-container').forEach(el => el.remove());
+      
+      // Se houver duplicação do campo de municípios (identificado por id "municipio"), mantenha somente o primeiro
+      const municipios = finalDoc.querySelectorAll('#municipio');
+      if(municipios.length > 1) {
+        for(let i = 1; i < municipios.length; i++){
+          municipios[i].remove();
+        }
+      }
+      
+      // Retorna o HTML final com o DOCTYPE
+      return '<!DOCTYPE html>' + finalDoc.documentElement.outerHTML;
+    }
+
+    function showFinalHTML() {
+      const finalHTML = generateFinalHTML();
+      const finalCodeElement = document.getElementById('finalCode');
+      if (finalCodeElement) {
+        finalCodeElement.textContent = finalHTML;
+        const modal = new bootstrap.Modal(document.getElementById('codeModal'));
+        modal.show();
+      } else {
+        alert('Erro ao exibir o HTML final');
+      }
+    }
+
+    function exportHTML() {
+      const finalHTML = generateFinalHTML();
+      const blob = new Blob([finalHTML], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'documento-editado.html';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+    
+    // Exemplo de função para alternar o modo escuro (preservando a funcionalidade do HTML importado)
+    function toggleDarkMode() {
+      document.body.classList.toggle('dark-mode');
+    }
+  </script>
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
